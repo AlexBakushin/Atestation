@@ -25,6 +25,9 @@ class OrganizationCreateAPIView(generics.CreateAPIView):
 
 
 class OrganizationFilter(filters.FilterSet):
+    """
+    Фильтр по стране через API
+    """
     country = filters.CharFilter(field_name='contact__country')  # Указываем поле country в связанной модели contact
 
     class Meta:

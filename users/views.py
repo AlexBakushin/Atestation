@@ -15,6 +15,9 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
 
     def create(self, request):
+        """
+        При создании присваивается пароль
+        """
         serializer = UserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)

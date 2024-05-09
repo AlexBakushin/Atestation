@@ -28,9 +28,9 @@ class OrganizationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """
-        Создает привычку
-        :param validated_data:
-        :return:
+        Создает организацию.
+        Также создает контакт к организации.
+        И присваивает текущего пользователя к организации
         """
         contact_data = validated_data.pop('contact')
         try:
@@ -52,9 +52,10 @@ class OrganizationSerializer(serializers.ModelSerializer):
         return organization
 
     def update(self, instance, validated_data):
-        # Удалите поле 'arrears', если оно есть в validated_data
+        """
+        Не дает обновить задолженность
+        """
         if 'arrears' in validated_data:
             del validated_data['arrears']
 
-        # Вызовите родительский метод update() для обновления модели
         return super().update(instance, validated_data)
