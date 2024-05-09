@@ -3,16 +3,22 @@ from rest_framework.permissions import BasePermission
 
 class IsOwner(BasePermission):
     """
-    Пермишен проверяет, является ли пользователь владельцем привычки или админом
+    Пермишен проверяет, является ли пользователь владельцем или админом
     """
 
     def has_permission(self, request, view):
-        for obj in view.get_queryset():
-            if request.user == obj or request.user.is_superuser:
-                return True
+        if request.user in view.get_queryset() or request.user.is_superuser:
+            return True
+        else:
             return False
 
-    def has_object_permission(self, request, view, obj):
-        if request.user.is_superuser:
+
+class IsActive(BasePermission):
+    """
+    Пермишен проверяет, активен ли пользователь
+    """
+    def has_permission(self, request, view):
+        if request.user.is_active:
             return True
-        return obj == request.user
+        else:
+            return False

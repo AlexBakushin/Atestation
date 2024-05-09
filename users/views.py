@@ -4,7 +4,7 @@ from users.serliazers import UserSerializer
 from .models import User
 from rest_framework.response import Response
 from rest_framework import status
-from users.permissions import IsOwner
+from users.permissions import IsOwner, IsActive
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -34,12 +34,12 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             self.permission_classes = []
         elif self.action == 'list':
-            self.permission_classes = [IsAuthenticated, IsOwner]
+            self.permission_classes = [IsAuthenticated, IsActive, IsOwner]
         elif self.action == 'retrieve':
-            self.permission_classes = [IsAuthenticated, IsOwner]
+            self.permission_classes = [IsAuthenticated, IsActive, IsOwner]
         elif self.action == 'update':
-            self.permission_classes = [IsAuthenticated, IsOwner]
+            self.permission_classes = [IsAuthenticated, IsActive, IsOwner]
         elif self.action == 'destroy':
-            self.permission_classes = [IsAuthenticated, IsOwner]
+            self.permission_classes = [IsAuthenticated, IsActive, IsOwner]
 
         return [permission() for permission in self.permission_classes]
