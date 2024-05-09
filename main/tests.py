@@ -1,8 +1,6 @@
-import datetime
-from django.contrib.auth.models import Group
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
-from main.models import Organization, Contact, Product
+from main.models import Organization, Contact
 from users.models import User
 
 
@@ -15,526 +13,330 @@ class MainTests(APITestCase):
         self.client = APIClient()
         self.user = User.objects.create(email="admin@sky.pro", is_superuser=True, is_staff=True)
         self.client.force_authenticate(user=self.user)
-        self.contact = Contact.objects.create(email="admin@sky.pro", country="US", city="ff", street='grege', house='1')
 
         data = {
-            'name': "Test Organization",
-            'type_of_organization': 'factory',
-            'parent': '',
-            'contact': self.contact,
-            'arrears': 0.0,
-            'user': self.user
+            "contact": {
+                "email": "test@test.com",
+                "country": "US",
+                "city": "LA",
+                "street": "11",
+                "house": "1"
+            },
+            "name": "test",
+            "type_of_organization": "factory",
+            "arrears": 0.0
         }
 
-        response = self.client.post(
-            'organization/create/',
-            data=data
-        )
-        print(response)
+        response = self.client.post('/organization/create/', data=data, format='json')
         self.assertEqual(
             response.status_code,
             status.HTTP_201_CREATED
         )
 
-
-
-
-    def test_create_habit_is_user(self):
+    def test_create_organization_is_user(self):
         """
-        Тест на то, что обычный пользователь может создать привычку
+        Тест на то, что пользователь может создать организацию
         """
         self.client = APIClient()
-        self.user = User.objects.create(email="test@test.test", tg_user_name='@test_1', is_superuser=False, is_staff=False)
+        self.user = User.objects.create(email="test@sky.pro", is_superuser=False, is_staff=False)
         self.client.force_authenticate(user=self.user)
 
         data = {
-            'user': self.user.id,
-            'place': 'Место',
-            'time': datetime.datetime.now(),
-            'action': 'www',
-            'is_pleasant_habit': False,
-            'periodicity': 1,
-            'remuneration': 'Вознаграждение',
-            'time_to_complete': 10,
-            'is_published': False
+            "contact": {
+                "email": "test_2@test.com",
+                "country": "US",
+                "city": "LA",
+                "street": "11",
+                "house": "1"
+            },
+            "name": "test",
+            "type_of_organization": "factory",
+            "arrears": 0.0
         }
 
-        response = self.client.post(
-            '/habit/create/',
-            data=data
-        )
-
+        response = self.client.post('/organization/create/', data=data, format='json')
         self.assertEqual(
             response.status_code,
             status.HTTP_201_CREATED
         )
 
-    def test_create_habit_is_moder(self):
+    def test_create_organization_is_user_no_active(self):
         """
-        Тест на то, что модератор не может создать привычку
+        Тест на то, что не активный пользователь не может создать организацию
         """
-        group, created = Group.objects.get_or_create(name='moderator')
         self.client = APIClient()
-        self.user = User.objects.create(email="moder@test.com", tg_user_name='@moder_1', is_superuser=False, is_staff=True)
-        self.user.groups.add(group)
+        self.user = User.objects.create(email="test@sky.pro", is_superuser=False, is_staff=False, is_active=False)
         self.client.force_authenticate(user=self.user)
 
         data = {
-            'user': 1,
-            'place': 'Место',
-            'time': datetime.datetime.now(),
-            'action': 'Действие',
-            'is_pleasant_habit': False,
-            'periodicity': 1,
-            'remuneration': 'Вознаграждение',
-            'time_to_complete': 10,
-            'is_published': False
+            "contact": {
+                "email": "test_2@test.com",
+                "country": "US",
+                "city": "LA",
+                "street": "11",
+                "house": "1"
+            },
+            "name": "test",
+            "type_of_organization": "factory",
+            "arrears": 0.0
         }
 
-        response = self.client.post(
-            '/habit/create/',
-            data=data
-        )
-
+        response = self.client.post('/organization/create/', data=data, format='json')
         self.assertEqual(
             response.status_code,
             status.HTTP_403_FORBIDDEN
         )
 
-        self.assertEqual(
-            response.json(),
-            {'detail': 'У вас недостаточно прав для выполнения данного действия.'}
-
-        )
-
-    def test_list_habit_is_admin(self):
+    def test_list_organization_is_active(self):
         """
-        Тест на то что админ видит все привычки
+        Тест на то, что можно получить все организации
         """
         self.client = APIClient()
-        self.user = User.objects.create(email="admin_1@sky.pro", tg_user_name='@admin_2', is_superuser=True, is_staff=True)
+        self.user = User.objects.create(email="test@sky.pro", is_superuser=False, is_staff=False, is_active=True)
         self.client.force_authenticate(user=self.user)
 
-        test_user = User.objects.create(
-            email="test@test.test",
-            tg_user_name='@test_2',
-            is_superuser=False,
-            is_staff=False
-        )
-
-        Habit.objects.create(
-            user=test_user,
-            place='Место',
-            time=datetime.datetime.now(),
-            action='www',
-            is_pleasant_habit=False,
-            periodicity=1,
-            remuneration='Вознаграждение',
-            time_to_complete=10,
-            is_published=False,
-        )
-
-        response = self.client.get(
-            '/habit/'
-        )
-
+        response = self.client.get('/organization/')
         self.assertEqual(
             response.status_code,
             status.HTTP_200_OK
         )
 
-    def test_list_habit_is_user(self):
+    def test_list_organization_no_active(self):
         """
-        Тест на то что обычный пользователь не видит чужие привычки, но видит свои
+        Тест на то, что нельзя получить организации, если пользователь не активен
         """
         self.client = APIClient()
-        self.user = User.objects.create(email="test_3@test.test", tg_user_name='@test_3', is_superuser=False, is_staff=False)
+        self.user = User.objects.create(email="test@sky.pro", is_superuser=False, is_staff=False, is_active=False)
         self.client.force_authenticate(user=self.user)
 
-        test_user = User.objects.create(
-            email="test_2@test.test",
-            tg_user_name='@test_4',
-            is_superuser=False,
-            is_staff=False
+        response = self.client.get('/organization/')
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN
         )
 
-        Habit.objects.create(
-            user=test_user,
-            place='Место',
-            time=datetime.datetime.now(),
-            action='Действие',
-            is_pleasant_habit=False,
-            periodicity=1,
-            time_to_complete=10,
-            is_published=False,
-        )
+    def test_retrieve_organization_is_active(self):
+        """
+        Тест на то, что можно получить организацию
+        """
+        self.client = APIClient()
+        self.user = User.objects.create(email="test@sky.pro", is_superuser=False, is_staff=False, is_active=True)
+        self.client.force_authenticate(user=self.user)
 
-        Habit.objects.create(
-            user=self.user,
-            place='Место',
-            time=datetime.datetime.now(),
-            action='www',
-            is_pleasant_habit=False,
-            periodicity=1,
-            time_to_complete=10,
-            is_published=False,
-        )
+        data = {
+            "contact": {
+                "email": "test_4@test.com",
+                "country": "US",
+                "city": "LA",
+                "street": "11",
+                "house": "1"
+            },
+            "name": "test_4",
+            "type_of_organization": "factory",
+            "arrears": 0.0
+        }
 
-        response = self.client.get(
-            '/habit/'
-        )
+        contact_data = data.pop('contact')
+        contact = Contact.objects.create(**contact_data)
+        Organization.objects.create(contact=contact, user=self.user, **data)
 
+        response = self.client.get('/organization/6/')
         self.assertEqual(
             response.status_code,
             status.HTTP_200_OK
         )
 
-    def test_list_habit_is_moder(self):
+    def test_retrieve_organization_no_active(self):
         """
-        Тест на то что модератор видит все привычки
+        Тест на то, что нельзя получить организацию, если пользователь не активен
         """
-        group, created = Group.objects.get_or_create(name='moderator')
         self.client = APIClient()
-        self.user = User.objects.create(email="moder_1@test.com", tg_user_name='@moder_2', is_superuser=False, is_staff=True)
-        self.user.groups.add(group)
+        self.user = User.objects.create(email="test_5@sky.pro", is_superuser=False, is_staff=False, is_active=False)
         self.client.force_authenticate(user=self.user)
 
-        test_user = User.objects.create(
-            email="test_4@test.test",
-            tg_user_name='@test_5',
-            is_superuser=False,
-            is_staff=False
+        data = {
+            "contact": {
+                "email": "test_5@test.com",
+                "country": "US",
+                "city": "LA",
+                "street": "11",
+                "house": "1"
+            },
+            "name": "test_5",
+            "type_of_organization": "factory",
+            "arrears": 0.0
+        }
+
+        contact_data = data.pop('contact')
+        contact = Contact.objects.create(**contact_data)
+        Organization.objects.create(contact=contact, user=self.user, **data)
+
+        response = self.client.get('/organization/1/')
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN
         )
 
-        Habit.objects.create(
-            user=test_user,
-            place='Место',
-            time=datetime.datetime.now(),
-            action='www',
-            is_pleasant_habit=False,
-            periodicity=1,
-            remuneration='Вознаграждение',
-            time_to_complete=10,
-            is_published=False,
-        )
+    def test_update_organization_is_active(self):
+        """
+        Тест на то, что можно обновить организацию
+        """
+        self.client = APIClient()
+        self.user = User.objects.create(email="test_6@sky.pro", is_superuser=False, is_staff=False, is_active=True)
+        self.client.force_authenticate(user=self.user)
 
-        response = self.client.get(
-            '/habit/'
-        )
+        data = {
+            "contact": {
+                "email": "test_6@test.com",
+                "country": "US",
+                "city": "LA",
+                "street": "11",
+                "house": "1"
+            },
+            "name": "test_6",
+            "type_of_organization": "factory",
+            "arrears": 0.0
+        }
 
+        contact_data = data.pop('contact')
+        contact = Contact.objects.create(**contact_data)
+        Organization.objects.create(contact=contact, user=self.user, **data)
+
+        data_2 = {
+            "name": "test_66"
+        }
+
+        response = self.client.patch('/organization/update/8/', data=data_2)
         self.assertEqual(
             response.status_code,
             status.HTTP_200_OK
         )
 
-    def test_list_public_habit_is_admin(self):
+    def test_update_organization_no_active(self):
         """
-        Тест на то что админ видит все привычки
+        Тест на то, что нельзя обновить организацию, если пользователь не активен
         """
         self.client = APIClient()
-        self.user = User.objects.create(email="admin_9@sky.pro", tg_user_name='@admin_9', is_superuser=True, is_staff=True)
+        self.user = User.objects.create(email="test_7@sky.pro", is_superuser=False, is_staff=False, is_active=False)
         self.client.force_authenticate(user=self.user)
 
-        test_user = User.objects.create(
-            email="test9@test.test",
-            tg_user_name='@test_9',
-            is_superuser=False,
-            is_staff=False
-        )
+        data = {
+            "contact": {
+                "email": "test_7@test.com",
+                "country": "US",
+                "city": "LA",
+                "street": "11",
+                "house": "1"
+            },
+            "name": "test_7",
+            "type_of_organization": "factory",
+            "arrears": 0.0
+        }
 
-        Habit.objects.create(
-            user=test_user,
-            place='Место',
-            time=datetime.datetime.now(),
-            action='www',
-            is_pleasant_habit=False,
-            periodicity=1,
-            remuneration='Вознаграждение',
-            time_to_complete=10,
-            is_published=False,
-        )
+        contact_data = data.pop('contact')
+        contact = Contact.objects.create(**contact_data)
+        Organization.objects.create(contact=contact, user=self.user, **data)
 
-        response = self.client.get(
-            '/habit/public/'
-        )
+        data_2 = {
+            "name": "test_77"
+        }
 
+        response = self.client.patch('/organization/update/1/', data=data_2)
         self.assertEqual(
             response.status_code,
-            status.HTTP_200_OK
+            status.HTTP_403_FORBIDDEN
         )
 
-    def test_list_public_habit_is_user(self):
+    def test_delete_organization_is_active(self):
         """
-        Тест на то что обычный пользователь не видит чужие привычки, но видит свои
-        """
-        self.client = APIClient()
-        self.user = User.objects.create(email="test_0@test.test", tg_user_name='@test_0', is_superuser=False, is_staff=False)
-        self.client.force_authenticate(user=self.user)
-
-        test_user = User.objects.create(
-            email="test_00@test.test",
-            tg_user_name='@test_00',
-            is_superuser=False,
-            is_staff=False
-        )
-
-        Habit.objects.create(
-            user=test_user,
-            place='Место',
-            time=datetime.datetime.now(),
-            action='Действие',
-            is_pleasant_habit=False,
-            periodicity=1,
-            time_to_complete=10,
-            is_published=False,
-        )
-
-        Habit.objects.create(
-            user=self.user,
-            place='Место',
-            time=datetime.datetime.now(),
-            action='www',
-            is_pleasant_habit=False,
-            periodicity=1,
-            time_to_complete=10,
-            is_published=False,
-        )
-
-        response = self.client.get(
-            '/habit/public/'
-        )
-
-        self.assertEqual(
-            response.status_code,
-            status.HTTP_200_OK
-        )
-
-    def test_list_public_habit_is_moder(self):
-        """
-        Тест на то что модератор видит все привычки
-        """
-        group, created = Group.objects.get_or_create(name='moderator')
-        self.client = APIClient()
-        self.user = User.objects.create(email="moder_0@test.com", tg_user_name='@moder_0', is_superuser=False, is_staff=True)
-        self.user.groups.add(group)
-        self.client.force_authenticate(user=self.user)
-
-        test_user = User.objects.create(
-            email="test_000@test.test",
-            tg_user_name='@test_000',
-            is_superuser=False,
-            is_staff=False
-        )
-
-        Habit.objects.create(
-            user=test_user,
-            place='Место',
-            time=datetime.datetime.now(),
-            action='www',
-            is_pleasant_habit=False,
-            periodicity=1,
-            remuneration='Вознаграждение',
-            time_to_complete=10,
-            is_published=False,
-        )
-
-        response = self.client.get(
-            '/habit/public/'
-        )
-
-        self.assertEqual(
-            response.status_code,
-            status.HTTP_200_OK
-        )
-
-    def test_update_habit_is_admin(self):
-        """
-        Тест на то что админ может обновлять любую привычку
+        Тест на то, что можно удалить организацию хозяину
         """
         self.client = APIClient()
-        self.user = User.objects.create(email="admin_2@sky.pro", tg_user_name='@admin_3', is_superuser=True, is_staff=True)
+        self.user = User.objects.create(email="test_8@sky.pro", is_superuser=False, is_staff=False, is_active=True)
         self.client.force_authenticate(user=self.user)
 
-        Habit.objects.create(
-            user=self.user,
-            place='Место',
-            time=datetime.datetime.now(),
-            action='Действие',
-            is_pleasant_habit=False,
-            periodicity=1,
-            remuneration='Вознаграждение',
-            time_to_complete=10,
-            is_published=False,
-        )
+        data = {
+            "contact": {
+                "email": "test_8@test.com",
+                "country": "US",
+                "city": "LA",
+                "street": "11",
+                "house": "1"
+            },
+            "name": "test_8",
+            "type_of_organization": "factory",
+            "arrears": 0.0
+        }
 
-        response = self.client.patch(
-            '/habit/update/14/',
-            {"action": "wwwwww"}
-        )
+        contact_data = data.pop('contact')
+        contact = Contact.objects.create(**contact_data)
+        Organization.objects.create(contact=contact, user=self.user, **data)
 
-        self.assertEqual(
-            response.status_code, status.HTTP_200_OK
-        )
-
-    def test_update_habit_is_user(self):
-        """
-        Тест на то что обычный пользователь может обновлять только свою привычку
-        """
-        self.client = APIClient()
-        self.user = User.objects.create(email="test_5@test.test", tg_user_name='@test_6', is_superuser=False, is_staff=False)
-        self.client.force_authenticate(user=self.user)
-
-        Habit.objects.create(
-            user=self.user,
-            place='Место',
-            time=datetime.datetime.now(),
-            action='Действие',
-            is_pleasant_habit=False,
-            periodicity=1,
-            remuneration='Вознаграждение',
-            time_to_complete=10,
-            is_published=False,
-        )
-
-        response = self.client.patch(
-            '/habit/update/16/',
-            {"action": "www"}
-        )
-
-        self.assertEqual(
-            response.status_code, status.HTTP_200_OK
-        )
-
-    def test_update_habit_is_moder(self):
-        """
-        Тест на то что модератор может обновлять любую привычку
-        """
-        group, created = Group.objects.get_or_create(name='moderator')
-        self.client = APIClient()
-        self.user = User.objects.create(email="moder@test.com", tg_user_name='@moder_3', is_superuser=False, is_staff=True)
-        self.user.groups.add(group)
-        self.client.force_authenticate(user=self.user)
-
-        Habit.objects.create(
-            user=self.user,
-            place='Место',
-            time=datetime.datetime.now(),
-            action='Действие',
-            is_pleasant_habit=False,
-            periodicity=1,
-            remuneration='Вознаграждение',
-            time_to_complete=10,
-            is_published=False,
-
-        )
-
-        response = self.client.patch(
-            '/habit/update/15/',
-            {"action": "wwe"}
-        )
-
-        self.assertEqual(
-            response.status_code, status.HTTP_200_OK
-        )
-
-    def test_delete_habit_is_admin(self):
-        """
-        Тест на то что админ может удалять любую привычку
-        """
-        self.client = APIClient()
-        self.user = User.objects.create(email="admin@sky.pro", tg_user_name='@admin_4', is_superuser=True, is_staff=True)
-        self.client.force_authenticate(user=self.user)
-
-        Habit.objects.create(
-            user=self.user,
-            place='Место',
-            time=datetime.datetime.now(),
-            action='Действие',
-            is_pleasant_habit=False,
-            periodicity=1,
-            remuneration='Вознаграждение',
-            time_to_complete=10,
-            is_published=False,
-        )
-
-        response = self.client.delete(
-            '/habit/delete/3/'
-        )
-
+        response = self.client.delete('/organization/delete/3/')
         self.assertEqual(
             response.status_code,
             status.HTTP_204_NO_CONTENT
         )
 
-    def test_delete_habit_is_user(self):
+    def test_delete_organization_no_active(self):
         """
-        Тест на то что обычный пользователь не может удалять чужую привычку
+        Тест на то, что нельзя удалить организацию, если пользователь не активен
         """
         self.client = APIClient()
-        self.user = User.objects.create(email="test_6@test.test", tg_user_name='@test_7', is_superuser=False, is_staff=False)
+        self.user = User.objects.create(email="test_9@sky.pro", is_superuser=False, is_staff=False, is_active=False)
         self.client.force_authenticate(user=self.user)
 
-        test_user = User.objects.create(
-            email="test_5@test.test",
-            tg_user_name='@test_8',
-            is_superuser=False,
-            is_staff=False
-        )
+        data = {
+            "contact": {
+                "email": "test_9@test.com",
+                "country": "US",
+                "city": "LA",
+                "street": "11",
+                "house": "1"
+            },
+            "name": "test_9",
+            "type_of_organization": "factory",
+            "arrears": 0.0
+        }
 
-        Habit.objects.create(
-            user=test_user,
-            place='Место',
-            time=datetime.datetime.now(),
-            action='Действие',
-            is_pleasant_habit=False,
-            periodicity=1,
-            remuneration='Вознаграждение',
-            time_to_complete=10,
-            is_published=False,
-        )
+        contact_data = data.pop('contact')
+        contact = Contact.objects.create(**contact_data)
+        Organization.objects.create(contact=contact, user=self.user, **data)
 
-        response = self.client.delete(
-            '/habit/delete/5/'
-        )
-
+        response = self.client.delete('/organization/delete/1/')
         self.assertEqual(
             response.status_code,
             status.HTTP_403_FORBIDDEN
         )
 
-    def test_delete_habit_is_moder(self):
+    def test_delete_organization_no_owner(self):
         """
-        Тест на то что модератор не может удалять любую привычку
+        Тест на то, что нельзя удалить организацию не хозяину
         """
-        group, created = Group.objects.get_or_create(name='moderator')
         self.client = APIClient()
-        self.user = User.objects.create(email="moder_6@test.com", tg_user_name='@moder_4', is_superuser=False, is_staff=True)
-        self.user.groups.add(group)
+        self.user = User.objects.create(email="test_10@sky.pro", is_superuser=False, is_staff=False, is_active=True)
         self.client.force_authenticate(user=self.user)
 
-        test_user = User.objects.create(
-            email="test_7@test.test",
-            tg_user_name='@test_9',
-            is_superuser=False,
-            is_staff=False
-        )
+        data = {
+            "contact": {
+                "email": "test_10@test.com",
+                "country": "US",
+                "city": "LA",
+                "street": "11",
+                "house": "1"
+            },
+            "name": "test_10",
+            "type_of_organization": "factory",
+            "arrears": 0.0
+        }
 
-        Habit.objects.create(
-            user=test_user,
-            place='Место',
-            time=datetime.datetime.now(),
-            action='Действие',
-            is_pleasant_habit=False,
-            periodicity=1,
-            remuneration='Вознаграждение',
-            time_to_complete=10,
-            is_published=False,
-        )
+        user = User.objects.create(email="test_10", is_superuser=False, is_active=True)
 
-        response = self.client.delete(
-            '/habit/delete/1/'
-        )
+        contact_data = data.pop('contact')
+        contact = Contact.objects.create(**contact_data)
+        Organization.objects.create(contact=contact, user=user, **data)
 
+        response = self.client.delete('/organization/delete/1/')
         self.assertEqual(
             response.status_code,
             status.HTTP_403_FORBIDDEN

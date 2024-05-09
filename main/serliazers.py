@@ -33,10 +33,10 @@ class OrganizationSerializer(serializers.ModelSerializer):
         :return:
         """
         contact_data = validated_data.pop('contact')
-
-        if Contact.objects.get(email=contact_data["email"]):
-            contact = Contact.objects.get(email=contact_data["email"])
-        else:
+        try:
+            if Contact.objects.get(email=contact_data["email"]):
+                contact = Contact.objects.get(email=contact_data["email"])
+        except:
             contact = Contact.objects.create(**contact_data)
 
         user = self.context['request'].user  # получаем авторизированного пользователя

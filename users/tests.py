@@ -44,7 +44,7 @@ class UserTestCase(APITestCase):
             is_staff=False,
         )
 
-        response = self.client.get('/users/user/1/')
+        response = self.client.get('/users/user/16/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_update_user(self):
@@ -60,7 +60,7 @@ class UserTestCase(APITestCase):
             'password': '12345',
         }
 
-        response = self.client.put('/users/user/1/', data=data)
+        response = self.client.put('/users/user/19/', data=data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_delete_user(self):
@@ -71,5 +71,5 @@ class UserTestCase(APITestCase):
         self.user = User.objects.create(email="test_54645632@test.test", is_superuser=False, is_staff=False)
         self.client.force_authenticate(user=self.user)
 
-        response = self.client.delete('/users/user/1/')
+        response = self.client.delete('/users/user/15/')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
